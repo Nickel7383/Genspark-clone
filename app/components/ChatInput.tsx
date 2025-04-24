@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 interface ChatInputProps {
@@ -11,6 +11,13 @@ interface ChatInputProps {
 export default function ChatInput({ onSendMessage, messages }: ChatInputProps) {
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +64,7 @@ export default function ChatInput({ onSendMessage, messages }: ChatInputProps) {
   return (
     <form onSubmit={handleSubmit} className="w-full mx-auto relative">
       <textarea
+        ref={textareaRef}
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         onKeyDown={(e) => {
