@@ -55,7 +55,7 @@ export default function ChatInput({ onSendMessage, messages }: ChatInputProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-[800px] mx-auto relative">
+    <form onSubmit={handleSubmit} className="w-full mx-auto relative">
       <textarea
         value={message}
         onChange={(e) => setMessage(e.target.value)}
