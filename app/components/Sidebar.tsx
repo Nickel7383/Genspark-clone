@@ -1,14 +1,31 @@
 import { useState } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
+import { usePathname } from 'next/navigation';
+import React from 'react';
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(true);
   const { data: session } = useSession();
+  const pathname = usePathname();
+
+  const menuItems = [
+    { path: '/', label: '홈', icon: '🏠' },
+    { path: '/test1', label: '슈퍼 에이전트', icon: 'ℹ️' },
+    { path: '/test2', label: 'AI 슬라이드', icon: '🔧' },
+    { path: '/test3', label: '이미지 스튜디오', icon: '📞' },
+  ];
 
   return (
-    <div className={`h-screen bg-[#1a1a1a] text-white p-4 transition-all duration-300 ${isOpen ? 'w-64' : 'w-16'} flex flex-col`}>
+    <div className={`h-screen bg-[#1a1a1a] text-white p-3 transition-all duration-300 ${isOpen ? 'w-64' : 'w-16'} flex flex-col`}>
       <div className="flex justify-between items-center mb-6">
-        {isOpen && <h2 className="text-xl font-bold">메뉴</h2>}
+        {isOpen && (
+          <h2 
+            className="text-xl font-bold cursor-pointer hover:opacity-80 transition-opacity duration-200 ml-2"
+            onClick={() => window.location.href = '/'}
+          >
+            Genspark
+          </h2>
+        )}
         <button 
           onClick={() => setIsOpen(!isOpen)}
           className="p-2 hover:bg-gray-700 rounded-xl"
@@ -17,21 +34,26 @@ export default function Sidebar() {
         </button>
       </div>
       <ul className="space-y-4">
-        <li 
-          className="hover:bg-gray-800 p-2 rounded-xl cursor-pointer flex items-center"
-          onClick={() => window.location.href = '/'}
-        >
-          {isOpen ? '홈' : '🏠'}
-        </li>
-        <li className="hover:bg-gray-800 p-2 rounded-xl cursor-pointer flex items-center">
-          {isOpen ? '테스트' : 'ℹ️'}
-        </li>
-        <li className="hover:bg-gray-800 p-2 rounded-xl cursor-pointer flex items-center">
-          {isOpen ? '테스트' : '🔧'}
-        </li>
-        <li className="hover:bg-gray-800 p-2 rounded-xl cursor-pointer flex items-center">
-          {isOpen ? '테스트' : '📞'}
-        </li>
+        {menuItems.map((item, index) => (
+          <React.Fragment key={`${item.path}-fragment`}>
+            <li 
+              key={item.path}
+              className="p-1 cursor-pointer"
+              onClick={() => window.location.href = item.path}
+            >
+              {isOpen ? (
+                <span className={`${pathname === item.path ? 'bg-white text-gray-900' : 'text-white hover:bg-gray-800'} px-3 py-2 rounded-3xl transition-all duration-200 whitespace-nowrap text-base`}>
+                  {item.label}
+                </span>
+              ) : (
+                <span className={`${pathname === item.path ? 'bg-white text-gray-900' : 'text-white hover:bg-gray-800'} px-1.5 py-2 rounded-3xl transition-all duration-200 whitespace-nowrap text-base`}>
+                  {item.icon}
+                </span>
+              )}
+            </li>
+            {index === 0 && <hr className="border-gray-700 my-3" />}
+          </React.Fragment>
+        ))}
       </ul>
       <div className="mt-auto">
         {session ? (
