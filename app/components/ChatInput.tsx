@@ -48,11 +48,14 @@ export default function ChatInput({ onSendMessage, messages }: ChatInputProps) {
         history: chatHistory
       });
       
-      const result = await chat.sendMessage(message);
-      const response = await result.response;
-      const text = response.text();
+      const result = await chat.sendMessageStream(message);
+      let fullResponse = '';
       
-      onSendMessage(text, false);
+      for await (const chunk of result.stream) {
+        const chunkText = chunk.text();
+        fullResponse += chunkText;
+        onSendMessage(fullResponse, false);
+      }
     } catch (error) {
       console.error('Error:', error);
       onSendMessage('죄송합니다. 오류가 발생했습니다.', false);

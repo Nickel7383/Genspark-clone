@@ -1,12 +1,15 @@
+'use client';
+
 import { useState } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import React from 'react';
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(true);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const pathname = usePathname();
+  const router = useRouter();
 
   const menuItems = [
     { path: '/', label: '홈', icon: '🏠' },
@@ -19,13 +22,25 @@ export default function Sidebar() {
     { path: '/profile', label: '나', icon: '👤' },
   ];
 
+  if (status === "loading") {
+    return (
+      <div className={`h-screen bg-[#1a1a1a] text-white p-3 transition-all duration-300 ${isOpen ? 'w-64' : 'w-16'}`}>
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-700 rounded-xl"></div>
+          <div className="h-8 bg-gray-700 rounded-xl"></div>
+          <div className="h-8 bg-gray-700 rounded-xl"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`h-screen bg-[#1a1a1a] text-white p-3 transition-all duration-300 ${isOpen ? 'w-64' : 'w-16'} flex flex-col`}>
       <div className="flex justify-between items-center mb-6">
         {isOpen && (
           <h2 
             className="text-xl font-bold cursor-pointer hover:opacity-80 transition-opacity duration-200 ml-2"
-            onClick={() => window.location.href = '/'}
+            onClick={() => router.push('/')}
           >
             Genspark
           </h2>
@@ -43,7 +58,7 @@ export default function Sidebar() {
             <li 
               key={item.path}
               className="p-1 cursor-pointer"
-              onClick={() => window.location.href = item.path}
+              onClick={() => router.push(item.path)}
             >
               {isOpen ? (
                 <span className={`${pathname === item.path ? 'bg-white text-gray-900' : 'text-white hover:bg-gray-800'} px-3 py-2 rounded-3xl transition-all duration-200 whitespace-nowrap text-base`}>
@@ -65,7 +80,7 @@ export default function Sidebar() {
           <li 
             key={item.path}
             className="p-1 cursor-pointer"
-            onClick={() => window.location.href = item.path}
+            onClick={() => router.push(item.path)}
           >
             {isOpen ? (
               <span className={`${pathname === item.path ? 'bg-white text-gray-900' : 'text-white hover:bg-gray-800'} px-3 py-2 rounded-3xl transition-all duration-200 whitespace-nowrap text-base`}>
@@ -115,12 +130,12 @@ export default function Sidebar() {
           </div>
         ) : (
           <button
-            onClick={() => signIn('google')}
+            onClick={() => router.push('/auth/signin')}
             className="w-full bg-gray-700 hover:bg-gray-600 text-white text-sm py-1.5 px-3 rounded-xl transition-colors duration-200 flex items-center justify-center gap-1 cursor-pointer"
           >
             {isOpen ? (
               <>
-                <span>Google 로그인</span>
+                <span>로그인</span>
               </>
             ) : (
               '🔑'
