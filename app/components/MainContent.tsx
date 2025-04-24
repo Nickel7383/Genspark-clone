@@ -43,7 +43,7 @@ export default function MainContent() {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-[#1a1a1a] [&::-webkit-scrollbar-thumb]:bg-[#333] [&::-webkit-scrollbar-thumb]:rounded-full">
+    <div className="flex-1 flex flex-col h-full overflow-hidden overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-[#1a1a1a] [&::-webkit-scrollbar-thumb]:bg-[#333] [&::-webkit-scrollbar-thumb]:rounded-full bg-[#232425]">
       <div className='max-w-[800px] w-full mx-auto flex-1 flex flex-col h-full'>
         {messages.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center">

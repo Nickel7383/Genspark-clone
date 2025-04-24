@@ -15,6 +15,10 @@ export default function Sidebar() {
     { path: '/test3', label: '이미지 스튜디오', icon: '📞' },
   ];
 
+  const profileMenu = [
+    { path: '/profile', label: '나', icon: '👤' },
+  ];
+
   return (
     <div className={`h-screen bg-[#1a1a1a] text-white p-3 transition-all duration-300 ${isOpen ? 'w-64' : 'w-16'} flex flex-col`}>
       <div className="flex justify-between items-center mb-6">
@@ -51,8 +55,28 @@ export default function Sidebar() {
                 </span>
               )}
             </li>
-            {index === 0 && <hr className="border-gray-700 my-3" />}
+            {index === 0 && <hr className="border-gray-700 my-5" />}
           </React.Fragment>
+        ))}
+      </ul>
+      <hr className="border-gray-700 my-5" />
+      <ul className="space-y-4">
+        {profileMenu.map((item) => (
+          <li 
+            key={item.path}
+            className="p-1 cursor-pointer"
+            onClick={() => window.location.href = item.path}
+          >
+            {isOpen ? (
+              <span className={`${pathname === item.path ? 'bg-white text-gray-900' : 'text-white hover:bg-gray-800'} px-3 py-2 rounded-3xl transition-all duration-200 whitespace-nowrap text-base`}>
+                {item.label}
+              </span>
+            ) : (
+              <span className={`${pathname === item.path ? 'bg-white text-gray-900' : 'text-white hover:bg-gray-800'} px-1.5 py-2 rounded-3xl transition-all duration-200 whitespace-nowrap text-base`}>
+                {item.icon}
+              </span>
+            )}
+          </li>
         ))}
       </ul>
       <div className="mt-auto">
