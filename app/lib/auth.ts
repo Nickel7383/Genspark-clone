@@ -1,4 +1,4 @@
-import { type Session, type User, type Account, type Profile, type SessionStrategy } from "next-auth";
+import { type Session, type User, type Account, type Profile, type SessionStrategy, type NextAuthOptions } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
-export const authOptions = {
+export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
