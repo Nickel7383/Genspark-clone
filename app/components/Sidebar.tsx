@@ -1,19 +1,40 @@
 'use client';
 
-import { useState } from 'react';
-import { useSession, signIn, signOut } from 'next-auth/react';
+import { useState, useEffect } from 'react';
+import { useSession, signOut } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
 import React from 'react';
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(true);
+  const [isVisible, setIsVisible] = useState(true);
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const router = useRouter();
 
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth <= 768) {
+        setIsVisible(false);
+      } else {
+        setIsVisible(true);
+        setIsOpen(true);
+      }
+    };
+
+    // 초기 실행
+    handleResize();
+
+    // 이벤트 리스너 등록
+    window.addEventListener('resize', handleResize);
+
+    // cleanup
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const menuItems = [
     { path: '/', label: '홈', icon: '🏠' },
-    { path: '/test1', label: '슈퍼 에이전트', icon: 'ℹ️' },
+    { path: '/agents', label: '슈퍼 에이전트', icon: '💬' },
     { path: '/test2', label: 'AI 슬라이드', icon: '🔧' },
     { path: '/test3', label: '이미지 스튜디오', icon: '📞' },
   ];
@@ -24,7 +45,7 @@ export default function Sidebar() {
 
   if (status === "loading") {
     return (
-      <div className={`h-screen bg-[#1a1a1a] text-white p-3 transition-all duration-300 ${isOpen ? 'w-64' : 'w-16'}`}>
+      <div className={`h-screen bg-[#1a1a1a] text-white p-3 transition-all duration-300 ${isOpen ? 'w-64' : 'w-16'} ${!isVisible ? 'hidden' : ''} flex flex-col`}>
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-gray-700 rounded-xl"></div>
           <div className="h-8 bg-gray-700 rounded-xl"></div>
@@ -35,7 +56,7 @@ export default function Sidebar() {
   }
 
   return (
-    <div className={`h-screen bg-[#1a1a1a] text-white p-3 transition-all duration-300 ${isOpen ? 'w-64' : 'w-16'} flex flex-col`}>
+    <div className={`h-screen bg-[#1a1a1a] text-white p-3 transition-all duration-300 ${isOpen ? 'w-64' : 'w-16'} ${!isVisible ? 'hidden' : ''} flex flex-col`}>
       <div className="flex justify-between items-center mb-6">
         {isOpen && (
           <h2 
@@ -116,7 +137,13 @@ export default function Sidebar() {
               )}
             </div>
             <button
-              onClick={() => signOut()}
+              onClick={() => {
+                if (window.confirm('정말 로그아웃 하시겠습니까?')) {
+                  signOut({ redirect: false }).then(() => {
+                    router.push('/');
+                  });
+                }
+              }}
               className="w-full bg-gray-700 hover:bg-gray-600 text-white text-sm py-1.5 px-3 rounded-xl transition-colors duration-200 flex items-center justify-center gap-1 cursor-pointer"
             >
               {isOpen ? (

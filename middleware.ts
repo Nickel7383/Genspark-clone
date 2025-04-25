@@ -8,7 +8,16 @@ export async function middleware(request: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET,
   });
 
-  if (!token && request.nextUrl.pathname.startsWith('/profile')) {
+  // 로그인이 필요한 경로들
+  const protectedPaths = ['/profile', '/agents'];
+  
+  // 현재 경로가 보호된 경로인지 확인
+  const isProtectedPath = protectedPaths.some(path => 
+    request.nextUrl.pathname.startsWith(path)
+  );
+
+  // 로그인이 필요한 경로에 접근 시도 시 로그인 페이지로 리다이렉트
+  if (!token && isProtectedPath) {
     return NextResponse.redirect(new URL('/auth/signin', request.url));
   }
 
@@ -17,5 +26,5 @@ export async function middleware(request: NextRequest) {
 
 // 미들웨어가 적용될 경로 설정
 export const config = {
-  matcher: ['/profile/:path*'],
+  matcher: ['/profile/:path*', '/agents/:path*'],
 }; 

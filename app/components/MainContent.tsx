@@ -1,42 +1,27 @@
 'use client';
 
-import { useState, useRef, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import ChatInput from './ChatInput';
-import ChatMessage from './ChatMessage';
-
-interface Message {
-  text: string;
-  isUser: boolean;
-}
+import { useState, useRef, useEffect } from 'react';
 
 export default function MainContent() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const { data: session, status } = useSession();
   const router = useRouter();
-
-  const handleNewMessage = (message: string, isUser: boolean) => {
-    if (isUser) {
-      setMessages(prev => [...prev, { text: message, isUser }]);
-    } else {
-      setMessages(prev => {
-        const newMessages = [...prev];
-        const lastMessage = newMessages[newMessages.length - 1];
-        if (lastMessage && !lastMessage.isUser) {
-          newMessages[newMessages.length - 1] = { text: message, isUser };
-        } else {
-          newMessages.push({ text: message, isUser });
-        }
-        return newMessages;
-      });
-    }
-  };
+  const [message, setMessage] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, []);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim()) return;
+    router.push(`/agents?message=${encodeURIComponent(message)}`);
+    setMessage('');
+  };
 
   if (status === "loading") {
     return (
@@ -60,40 +45,44 @@ export default function MainContent() {
           </button>
         </div>
       </div>
-    );
+    );    
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-[#1a1a1a] [&::-webkit-scrollbar-thumb]:bg-[#333] [&::-webkit-scrollbar-thumb]:rounded-full bg-[#232425]">
+    <div 
+      className="flex-1 flex flex-col h-full overflow-hidden overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-[#1a1a1a] [&::-webkit-scrollbar-thumb]:bg-[#333] [&::-webkit-scrollbar-thumb]:rounded-full bg-[#232425]"
+    >
       <div className='max-w-[850px] w-full mx-auto flex-1 flex flex-col h-full'>
-        {messages.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <h2 className="text-3xl font-bold mb-6 text-white">AI 에이전트</h2>
-            <div className="w-full">
-              <ChatInput onSendMessage={handleNewMessage} messages={messages} />
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <h2 className="text-3xl font-bold mb-6 text-white">Genspark 슈퍼 에이전트</h2>
+          <form onSubmit={handleSubmit} className="w-full mx-auto relative px-8">
+            <div className="relative">
+              <textarea
+                ref={textareaRef}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit(e);
+                  }
+                }}
+                placeholder="무엇이든 물어보세요"
+                className="w-full p-3 pr-12 bg-[#333333] text-gray-200 border border-gray-600 rounded-xl focus:outline-none min-h-[100px] resize-none"
+                rows={4}
+              />
+              <button
+                type="submit"
+                className="absolute right-3 bottom-4 w-8 h-8 flex items-center justify-center text-white rounded-full bg-gray-500 hover:bg-gray-600 transition-opacity"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M22 2L11 13" />
+                  <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+                </svg>
+              </button>
             </div>
-          </div>
-        ) : (
-          <>
-            <div className="flex-1 px-8">
-              <div className="space-y-4 pt-8">
-                {messages.map((message, index) => (
-                  <ChatMessage
-                    key={index}
-                    message={message.text}
-                    isUser={message.isUser}
-                  />
-                ))}
-                <div ref={messagesEndRef} />
-              </div>
-            </div>
-            <div className="sticky bottom-0 px-8 bg-gradient-to-b from-transparent via-[#232425] via-20% to-[#232425]">
-              <div className="py-4">
-                <ChatInput onSendMessage={handleNewMessage} messages={messages} />
-              </div>
-            </div>
-          </>
-        )}
+          </form>
+        </div>
       </div>
     </div>
   );

@@ -2,15 +2,32 @@
 
 import { signIn } from "next-auth/react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: 이메일/비밀번호 로그인 구현
-    console.log("Email/Password login not implemented yet");
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.ok) {
+        router.push("/");
+        router.refresh();
+      } else {
+        alert("이메일 또는 비밀번호가 일치하지 않습니다.");
+      }
+    } catch (error) {
+      console.error("Error signing in:", error);
+      alert("로그인 중 오류가 발생했습니다.");
+    }
   };
 
   const handleGoogleSignIn = async () => {
@@ -44,8 +61,9 @@ export default function SignIn() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-700 rounded-xl bg-[#232425] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-600 focus:border-transparent"
+                className="appearance-none relative block w-full px-3 py-2 border border-gray-700 rounded-xl bg-[#232425] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-600 focus:border-transparent autofill:bg-[#232425] autofill:text-white"
                 placeholder="이메일"
+                autoComplete="email"
               />
             </div>
             <div>
@@ -57,8 +75,9 @@ export default function SignIn() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-700 rounded-xl bg-[#232425] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-600 focus:border-transparent"
+                className="appearance-none relative block w-full px-3 py-2 border border-gray-700 rounded-xl bg-[#232425] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-600 focus:border-transparent autofill:bg-[#232425] autofill:text-white"
                 placeholder="비밀번호"
+                autoComplete="current-password"
               />
             </div>
           </div>
@@ -66,13 +85,24 @@ export default function SignIn() {
           <div>
             <button
               type="submit"
-              disabled
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent rounded-xl text-sm font-medium text-white bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 opacity-50 cursor-not-allowed"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent rounded-xl text-sm font-medium text-white bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 cursor-pointer"
             >
-              로그인 (준비중)
+              로그인
             </button>
           </div>
         </form>
+
+        <div className="text-center">
+          <p className="text-sm text-gray-400">
+            계정이 없으신가요?{" "}
+            <a
+              href="/auth/signup"
+              className="font-medium text-gray-300 hover:text-white"
+            >
+              회원가입
+            </a>
+          </p>
+        </div>
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">

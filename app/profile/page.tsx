@@ -1,16 +1,53 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
   const { data: session, status } = useSession();
   const [apiKey, setApiKey] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const router = useRouter();
+
+  const handleDeleteAccount = async () => {
+    if (!confirm('정말로 회원탈퇴 하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch('/api/auth/delete-account', {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        await signOut({ redirect: false });
+        router.push('/');
+      } else {
+        const data = await response.json();
+        alert(data.message || '회원탈퇴 중 오류가 발생했습니다.');
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      alert('회원탈퇴 중 오류가 발생했습니다.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   if (status === "loading") {
     return (
       <div className="flex-1 flex items-center justify-center bg-[#232425]">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-[#232425]">
+        <div className="text-white">로그인이 필요합니다.</div>
       </div>
     );
   }
@@ -35,7 +72,7 @@ export default function ProfilePage() {
             </div>
           </div>
           
-          <div className="border-t border-gray-700 pt-6">
+          <div className="space-y-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-white">API 설정</h2>
               <span className="text-sm px-2 py-1 bg-red-500 text-white rounded-lg">준비중</span>
@@ -65,6 +102,18 @@ export default function ProfilePage() {
                   * 현재 API 설정 기능은 준비 중입니다
                 </p>
               </div>
+            </div>
+          </div>
+
+          <div className="pt-6 border-t border-gray-700">
+            <div className="flex justify-end">
+              <button
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
+                className="text-sm px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? '처리 중...' : '회원탈퇴'}
+              </button>
             </div>
           </div>
         </div>
