@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     const defaultImage = `https://ui-avatars.com/api/?name=${encodeURIComponent(firstLetter)}&background=random&color=fff&size=128`;
 
     // 사용자 생성
-    const user = await prisma.user.create({
+    await prisma.user.create({
       data: {
         name,
         email,

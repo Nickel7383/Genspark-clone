@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const [apiKey, setApiKey] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
@@ -35,14 +35,6 @@ export default function ProfilePage() {
       setIsDeleting(false);
     }
   };
-
-  if (status === "loading") {
-    return (
-      <div className="flex-1 flex items-center justify-center bg-[#232425]">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
-      </div>
-    );
-  }
 
   if (!session) {
     return (

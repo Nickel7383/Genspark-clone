@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getAIResponse } from '@/app/lib/aiResponse';
 
 interface ChatInputProps {
   onSendMessage: (message: string, isUser: boolean) => void;
   messages: { text: string; isUser: boolean }[];
   onStreamEnd?: () => void;
+  selectedModel: string;
+  onModelChange: (model: string) => void;
 }
 
 const AVAILABLE_MODELS = [
@@ -15,28 +17,22 @@ const AVAILABLE_MODELS = [
   { id: 'gemini-2.5-flash-preview-04-17', name: 'Gemini 2.5 Flash' }
 ];
 
-export default function ChatInput({ onSendMessage, messages, onStreamEnd }: ChatInputProps) {
+export default function ChatInput({ 
+  onSendMessage, 
+  messages, 
+  onStreamEnd, 
+  selectedModel,
+  onModelChange 
+}: ChatInputProps) {
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('gemini-2.0-flash');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedModel = localStorage.getItem('MODEL_STORAGE_KEY');
-      if (savedModel) {
-        setSelectedModel(savedModel);
-      } else {
-        localStorage.setItem('MODEL_STORAGE_KEY', 'gemini-2.0-flash');
-      }
+    if (textareaRef.current) {
+      textareaRef.current.focus();
     }
   }, []);
-
-  const changeModel = (model: string) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('MODEL_STORAGE_KEY', model);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,41 +43,12 @@ export default function ChatInput({ onSendMessage, messages, onStreamEnd }: Chat
     setMessage('');
     
     try {
-      const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY || '');
-      const model = genAI.getGenerativeModel({ model: selectedModel });
-      
-      // 대화 히스토리 생성
-      const chatHistory = messages.map(msg => ({
-        role: msg.isUser ? 'user' : 'model',
-        parts: [{ text: msg.text }]
-      }));
-      
-      // 현재 메시지 추가
-      chatHistory.push({
-        role: 'user',
-        parts: [{ text: message }]
-      });
-
-      // 채팅 시작
-      const chat = model.startChat({
-        history: chatHistory
-      });
-      
-      const result = await chat.sendMessageStream(message);
-      let fullResponse = '';
-      
-      for await (const chunk of result.stream) {
-        const chunkText = chunk.text();
-        fullResponse += chunkText;
-        onSendMessage(fullResponse, false);
-      }
-      onStreamEnd?.();
-    } catch (error) {
-      console.error('Error:', error);
-      onSendMessage('죄송합니다. 오류가 발생했습니다.', false);
-      onStreamEnd?.();
+      await getAIResponse(message, messages, selectedModel, onSendMessage, onStreamEnd);
     } finally {
       setIsLoading(false);
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
     }
   };
 
@@ -92,9 +59,11 @@ export default function ChatInput({ onSendMessage, messages, onStreamEnd }: Chat
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && !e.shiftKey && !isLoading) {
+          if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            handleSubmit(e);
+            if (!isLoading) {
+              handleSubmit(e);
+            }
           }
         }}
         placeholder="무엇이든 물어보세요"
@@ -104,10 +73,7 @@ export default function ChatInput({ onSendMessage, messages, onStreamEnd }: Chat
       <div className="absolute right-3 bottom-4 flex items-center gap-2">
         <select
           value={selectedModel}
-          onChange={(e) => {
-            setSelectedModel(e.target.value);
-            changeModel(e.target.value);
-          }}
+          onChange={(e) => onModelChange(e.target.value)}
           className="bg-[#333333] text-gray-200 border border-gray-600 rounded-full px-3 py-1 text-xs focus:outline-none hover:bg-[#404040] transition-colors appearance-none cursor-pointer"
         >
           {AVAILABLE_MODELS.map((model) => (

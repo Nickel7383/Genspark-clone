@@ -3,14 +3,17 @@
 import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import LoadingSpinner from "@/app/components/LoadingSpinner";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     try {
       const result = await signIn("credentials", {
         email,
@@ -27,19 +30,25 @@ export default function SignIn() {
     } catch (error) {
       console.error("Error signing in:", error);
       alert("로그인 중 오류가 발생했습니다.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
+    setIsLoading(true);
     try {
       await signIn("google", { callbackUrl: "/" });
     } catch (error) {
       console.error("Error signing in:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#232425]">
+      {isLoading && <LoadingSpinner />}
       <div className="max-w-md w-full space-y-8 p-8 bg-[#2a2b2c] rounded-2xl">
         <div>
           <h2 className="text-center text-3xl font-bold text-white">

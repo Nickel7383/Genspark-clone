@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import ChatInput from './ChatInput';
 import ChatMessage from './ChatMessage';
+import { getAIResponse } from '@/app/lib/aiResponse';
 
 interface Message {
   text: string;
@@ -18,13 +19,52 @@ export default function ChatInterface({ initialMessage }: ChatInterfaceProps) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [lastScrollTop, setLastScrollTop] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [selectedModel, setSelectedModel] = useState('gemini-2.0-flash');
 
   useEffect(() => {
     if (initialMessage) {
       setMessages([{ text: initialMessage, isUser: true }]);
       setIsStreaming(true);
+      
+      // AI 응답 요청
+      getAIResponse(
+        initialMessage,
+        [{ text: initialMessage, isUser: true }],
+        selectedModel,
+        (message, isUser) => {
+          setMessages(prev => {
+            const newMessages = [...prev];
+            const lastMessage = newMessages[newMessages.length - 1];
+            if (lastMessage && !lastMessage.isUser) {
+              newMessages[newMessages.length - 1] = { text: message, isUser };
+            } else {
+              newMessages.push({ text: message, isUser });
+            }
+            return newMessages;
+          });
+        },
+        () => setIsStreaming(false)
+      );
     }
-  }, [initialMessage]);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedModel = localStorage.getItem('MODEL_STORAGE_KEY');
+      if (savedModel) {
+        setSelectedModel(savedModel);
+      } else {
+        localStorage.setItem('MODEL_STORAGE_KEY', 'gemini-2.0-flash');
+      }
+    }
+  }, []);
+
+  const handleModelChange = (model: string) => {
+    setSelectedModel(model);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('MODEL_STORAGE_KEY', model);
+    }
+  };
 
   const handleNewMessage = useCallback((message: string, isUser: boolean) => {
     if (isUser) {
@@ -103,6 +143,8 @@ export default function ChatInterface({ initialMessage }: ChatInterfaceProps) {
                     onSendMessage={handleNewMessage} 
                     messages={messages} 
                     onStreamEnd={handleStreamEnd}
+                    selectedModel={selectedModel}
+                    onModelChange={handleModelChange}
                 />
                 </div>
             </div>

@@ -8,7 +8,7 @@ import React from 'react';
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(true);
   const [isVisible, setIsVisible] = useState(true);
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -42,18 +42,6 @@ export default function Sidebar() {
   const profileMenu = [
     { path: '/profile', label: '나', icon: '👤' },
   ];
-
-  if (status === "loading") {
-    return (
-      <div className={`h-screen bg-[#1a1a1a] text-white p-3 transition-all duration-300 ${isOpen ? 'w-64' : 'w-16'} ${!isVisible ? 'hidden' : ''} flex flex-col`}>
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-700 rounded-xl"></div>
-          <div className="h-8 bg-gray-700 rounded-xl"></div>
-          <div className="h-8 bg-gray-700 rounded-xl"></div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className={`h-screen bg-[#1a1a1a] text-white p-3 transition-all duration-300 ${isOpen ? 'w-64' : 'w-16'} ${!isVisible ? 'hidden' : ''} flex flex-col`}>

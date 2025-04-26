@@ -1,8 +1,7 @@
-import { type Session, type User, type Account, type Profile, type SessionStrategy, type NextAuthOptions } from "next-auth";
-import type { JWT } from "next-auth/jwt";
+import { type User, type Account, type SessionStrategy, type NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 

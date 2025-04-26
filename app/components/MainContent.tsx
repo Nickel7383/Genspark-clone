@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from 'react';
 
 export default function MainContent() {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const router = useRouter();
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -19,17 +19,10 @@ export default function MainContent() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
-    router.push(`/agents?message=${encodeURIComponent(message)}`);
-    setMessage('');
-  };
 
-  if (status === "loading") {
-    return (
-      <div className="flex-1 flex items-center justify-center bg-[#232425]">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
-      </div>
-    );
-  }
+    sessionStorage.setItem('tempMessage', message);
+    router.push('/agents');
+  };
 
   if (!session) {
     return (
