@@ -36,9 +36,9 @@ export async function DELETE() {
       });
 
       // NextAuth 세션 정보 삭제
-      await prisma.session.deleteMany({
-        where: { userId: session.user.id },
-      });
+      // await prisma.session.deleteMany({
+      //   where: { userId: session.user.id },
+      // });
 
       return NextResponse.json(
         { message: "회원탈퇴가 완료되었습니다." },
