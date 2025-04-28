@@ -1,14 +1,63 @@
 'use client';
 
 import { useSession, signOut } from 'next-auth/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
   const { data: session } = useSession();
   const [apiKey, setApiKey] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const router = useRouter();
+
+  // API 키 조회
+  useEffect(() => {
+    async function fetchApiKey() {
+      try {
+        const response = await fetch('/api/user/api-key');
+        if (response.ok) {
+          const data = await response.json();
+          setApiKey(data.apiKey || '');
+        }
+      } catch (error) {
+        console.error('API 키 조회 중 오류:', error);
+      }
+    }
+
+    if (session) {
+      fetchApiKey();
+    }
+  }, [session]);
+
+  // API 키 저장
+  const handleSaveApiKey = async () => {
+    if (!apiKey.trim()) {
+      alert('API 키를 입력해주세요.');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/user/api-key', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey }),
+      });
+
+      if (response.ok) {
+        alert('API 키가 저장되었습니다.');
+      } else {
+        const data = await response.json();
+        alert(data.error || 'API 키 저장에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('API 키 저장 중 오류:', error);
+      alert('API 키 저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleDeleteAccount = async () => {
     if (!confirm('정말로 회원탈퇴 하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
@@ -67,9 +116,8 @@ export default function ProfilePage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-white">API 설정</h2>
-              <span className="text-sm px-2 py-1 bg-red-500 text-white rounded-lg">준비중</span>
             </div>
-            <div className="space-y-4 opacity-50">
+            <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">
                   Google API Key
@@ -81,18 +129,15 @@ export default function ProfilePage() {
                     onChange={(e) => setApiKey(e.target.value)}
                     placeholder="Google API Key를 입력하세요"
                     className="flex-1 px-3 py-2 bg-[#232425] border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-600 focus:border-transparent"
-                    disabled
                   />
                   <button
-                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-xl transition-colors duration-200 cursor-not-allowed"
-                    disabled
+                    onClick={handleSaveApiKey}
+                    disabled={isSaving}
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-xl transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    저장
+                    {isSaving ? '저장 중...' : '저장'}
                   </button>
                 </div>
-                <p className="mt-2 text-sm text-gray-500">
-                  * 현재 API 설정 기능은 준비 중입니다
-                </p>
               </div>
             </div>
           </div>

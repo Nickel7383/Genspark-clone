@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import ChatInput from './ChatInput';
 import ChatMessage from './ChatMessage';
-import { getAIResponse } from '@/app/lib/aiResponse';
+import { useSession } from 'next-auth/react';
 
 interface Message {
   text: string;
@@ -12,39 +12,88 @@ interface Message {
 
 interface ChatInterfaceProps {
   initialMessage?: string;
+  selectedChatId?: string;
 }
 
-export default function ChatInterface({ initialMessage }: ChatInterfaceProps) {
+export default function ChatInterface({ initialMessage, selectedChatId }: ChatInterfaceProps) {
+  const { data: session } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [lastScrollTop, setLastScrollTop] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [selectedModel, setSelectedModel] = useState('gemini-2.0-flash');
+  const [chatId, setChatId] = useState<string | null>(selectedChatId || null);
+  const [isSaving, setIsSaving] = useState(false);
+  const messagesRef = useRef<Message[]>([]);
 
+  // 선택된 채팅의 메시지 불러오기
   useEffect(() => {
-    if (initialMessage) {
-      setMessages([{ text: initialMessage, isUser: true }]);
-      setIsStreaming(true);
+    async function fetchChatMessages() {
+      if (!selectedChatId) return;
       
-      // AI 응답 요청
-      getAIResponse(
-        initialMessage,
-        [{ text: initialMessage, isUser: true }],
-        selectedModel,
-        (message, isUser) => {
-          setMessages(prev => {
-            const newMessages = [...prev];
-            const lastMessage = newMessages[newMessages.length - 1];
-            if (lastMessage && !lastMessage.isUser) {
-              newMessages[newMessages.length - 1] = { text: message, isUser };
-            } else {
-              newMessages.push({ text: message, isUser });
-            }
-            return newMessages;
-          });
+      try {
+        const response = await fetch(`/api/chat?id=${selectedChatId}`);
+        if (!response.ok) {
+          throw new Error('채팅 메시지를 불러오는데 실패했습니다.');
+        }
+        
+        const chat = await response.json();
+        setMessages(chat.messages || []);
+        setChatId(chat.id);
+      } catch (error) {
+        console.error('채팅 메시지 조회 중 오류:', error);
+        setMessages([]);
+      }
+    }
+    
+    fetchChatMessages();
+  }, [selectedChatId]);
+
+  // 대화 저장 함수
+  const saveChat = useCallback(async (messagesToSave: Message[]) => {
+    if (!session?.user || isSaving || messagesToSave.length === 0) return;
+
+    try {
+      setIsSaving(true);
+      const response = await fetch('/api/chat', {
+        method: chatId ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        () => setIsStreaming(false)
-      );
+        body: JSON.stringify({
+          ...(chatId && { chatId }),
+          messages: messagesToSave,
+          title: messagesToSave.find(msg => msg.isUser)?.text.slice(0, 50) || '새로운 대화',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('대화 저장에 실패했습니다.');
+      }
+
+      const data = await response.json();
+      // chatId가 없을 때만 새로 설정
+      if (!chatId) {
+        setChatId(data.id);
+      }
+    } catch (error) {
+      console.error('대화 저장 중 오류:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [chatId, isSaving, session?.user]);
+
+  // 메시지 상태 업데이트 함수
+  const updateMessages = useCallback((newMessages: Message[] | ((prev: Message[]) => Message[])) => {
+    if (typeof newMessages === 'function') {
+      setMessages(prev => {
+        const updated = newMessages(prev);
+        messagesRef.current = updated;
+        return updated;
+      });
+    } else {
+      setMessages(newMessages);
+      messagesRef.current = newMessages;
     }
   }, []);
 
@@ -68,10 +117,10 @@ export default function ChatInterface({ initialMessage }: ChatInterfaceProps) {
 
   const handleNewMessage = useCallback((message: string, isUser: boolean) => {
     if (isUser) {
-      setMessages(prev => [...prev, { text: message, isUser }]);
+      updateMessages(prev => [...prev, { text: message, isUser }]);
       setIsStreaming(true);
     } else {
-      setMessages(prev => {
+      updateMessages(prev => {
         const newMessages = [...prev];
         const lastMessage = newMessages[newMessages.length - 1];
         if (lastMessage && !lastMessage.isUser) {
@@ -82,11 +131,13 @@ export default function ChatInterface({ initialMessage }: ChatInterfaceProps) {
         return newMessages;
       });
     }
-  }, []);
+  }, [updateMessages]);
 
   const handleStreamEnd = useCallback(() => {
     setIsStreaming(false);
-  }, []);
+    // AI 응답이 완전히 끝난 후에만 대화 저장
+    saveChat(messagesRef.current);
+  }, [saveChat]);
 
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
@@ -112,6 +163,7 @@ export default function ChatInterface({ initialMessage }: ChatInterfaceProps) {
       }
     }
   }, [messages, isStreaming]);
+
 
   return (
     <div 
@@ -140,6 +192,7 @@ export default function ChatInterface({ initialMessage }: ChatInterfaceProps) {
             <div className="sticky bottom-0 px-8 bg-gradient-to-b from-transparent via-[#232425] via-20% to-[#232425]">
                 <div className="py-4">
                 <ChatInput 
+                    initialMessage={initialMessage}
                     onSendMessage={handleNewMessage} 
                     messages={messages} 
                     onStreamEnd={handleStreamEnd}

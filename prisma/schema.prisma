@@ -15,11 +15,13 @@ model User {
   name          String?
   email         String    @unique
   emailVerified DateTime?
-  password      String
+  password      String?
   image         String?
+  googleApiKey  String?   // Google API 키 필드 추가
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   accounts      Account[]
+  chats         Chat[]
 }
 
 model Account {
@@ -47,4 +49,16 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model Chat {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String   @default("새로운 대화")
+  messages  Json     // 대화 메시지들을 JSON 형태로 저장
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 } 

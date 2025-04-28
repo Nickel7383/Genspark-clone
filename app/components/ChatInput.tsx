@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { getAIResponse } from '@/app/lib/aiResponse';
 
 interface ChatInputProps {
+  initialMessage?: string;
   onSendMessage: (message: string, isUser: boolean) => void;
   messages: { text: string; isUser: boolean }[];
   onStreamEnd?: () => void;
@@ -18,6 +19,7 @@ const AVAILABLE_MODELS = [
 ];
 
 export default function ChatInput({ 
+  initialMessage, 
   onSendMessage, 
   messages, 
   onStreamEnd, 
@@ -27,12 +29,63 @@ export default function ChatInput({
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [apiKey, setApiKey] = useState<string>('');
+  const [hasInitialMessageSent, setHasInitialMessageSent] = useState(false);
+
+  // API 키 가져오기
+  useEffect(() => {
+    async function fetchApiKey() {
+      try {
+        const response = await fetch('/api/user/api-key');
+        if (response.ok) {
+          const data = await response.json();
+          setApiKey(data.apiKey || '');
+        }
+      } catch (error) {
+        console.error('API 키 조회 중 오류:', error);
+      }
+    }
+
+    fetchApiKey();
+  }, []);
+
+  // initialMessage가 있을 때 처음 한 번만 전송
+  useEffect(() => {
+    if (initialMessage && !hasInitialMessageSent && apiKey) {
+
+      setHasInitialMessageSent(true);
+      
+      // 약간의 지연 후 메시지 전송
+      setTimeout(() => {
+        if (!isLoading) {
+          setIsLoading(true);
+          onSendMessage(initialMessage, true);
+          
+          getAIResponse(
+            initialMessage,
+            messages,
+            selectedModel,
+            apiKey,
+            onSendMessage,
+            () => {
+              setIsLoading(false);
+              onStreamEnd?.();
+            }
+          );
+          setIsLoading(false);
+        }
+      }, 100);
+    }
+  }, [initialMessage, apiKey]);
 
   useEffect(() => {
     if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
       textareaRef.current.focus();
     }
-  }, []);
+  }, [message]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,19 +94,22 @@ export default function ChatInput({
     setIsLoading(true);
     onSendMessage(message, true);
     setMessage('');
-    
-    try {
-      await getAIResponse(message, messages, selectedModel, onSendMessage, onStreamEnd);
-    } finally {
-      setIsLoading(false);
-      if (textareaRef.current) {
-        textareaRef.current.focus();
+
+    await getAIResponse(
+      message,
+      messages,
+      selectedModel,
+      apiKey,
+      onSendMessage,
+      () => {
+        setIsLoading(false);
+        onStreamEnd?.();
       }
-    }
+    );
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full mx-auto relative">
+    <form ref={formRef} onSubmit={handleSubmit} className="w-full mx-auto relative">
       <textarea
         ref={textareaRef}
         value={message}
@@ -62,7 +118,7 @@ export default function ChatInput({
           if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             if (!isLoading) {
-              handleSubmit(e);
+            handleSubmit(e);
             }
           }
         }}

@@ -30,6 +30,10 @@ export const authOptions: NextAuthOptions = {
           throw new Error("이메일 또는 비밀번호가 일치하지 않습니다.");
         }
 
+        if (!user.password) {
+          throw new Error("이 계정은 비밀번호로 로그인할 수 없습니다.");
+        }
+
         const isValidPassword = await bcrypt.compare(
           credentials.password,
           user.password

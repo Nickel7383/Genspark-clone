@@ -9,11 +9,18 @@ export const getAIResponse = async (
   message: string,
   messages: Message[],
   selectedModel: string,
+  apiKey: string,
   onSendMessage: (message: string, isUser: boolean) => void,
   onStreamEnd?: () => void
 ) => {
+  if (!apiKey) {
+    onSendMessage('API 키가 설정되지 않았습니다. 프로필 페이지에서 API 키를 설정해주세요.', false);
+    onStreamEnd?.();
+    return;
+  }
+
   try {
-    const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY || '');
+    const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: selectedModel });
     
     // 대화 히스토리 생성
@@ -44,7 +51,11 @@ export const getAIResponse = async (
     onStreamEnd?.();
   } catch (error) {
     console.error('Error:', error);
-    onSendMessage('죄송합니다. 오류가 발생했습니다.', false);
+    if (error instanceof Error && error.message.includes('API key')) {
+      onSendMessage('API 키가 올바르지 않습니다. 프로필 페이지에서 올바른 API 키를 설정해주세요.', false);
+    } else {
+      onSendMessage('죄송합니다. 오류가 발생했습니다.', false);
+    }
     onStreamEnd?.();
   }
 }; 
