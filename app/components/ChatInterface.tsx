@@ -116,9 +116,9 @@ export default function ChatInterface({ initialMessage, selectedChatId }: ChatIn
     }
   };
 
-  const handleNewMessage = useCallback((message: string, isUser: boolean, imageUrl?: string) => {
+  const handleNewMessage = useCallback((message: string, isUser: boolean, imageUrl?: string | null) => {
     if (isUser) {
-      updateMessages(prev => [...prev, { text: message, isUser, imageUrl }]);
+      updateMessages(prev => [...prev, { text: message, isUser, imageUrl: imageUrl || undefined }]);
       setIsStreaming(true);
     } else {
       updateMessages(prev => {

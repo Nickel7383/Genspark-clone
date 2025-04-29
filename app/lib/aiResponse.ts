@@ -26,7 +26,11 @@ export const getAIResponse = async (
     if (imageFile) {
       // 이미지 업로드
       const uploaded = await ai.files.upload({ file: imageFile });
-
+      
+      if (!uploaded.uri || !uploaded.mimeType) {
+        throw new Error('Uploaded file does not have a URI or MIME type.');
+      }
+      
       const response = await ai.models.generateContentStream({
         model: selectedModel,
         contents: [
