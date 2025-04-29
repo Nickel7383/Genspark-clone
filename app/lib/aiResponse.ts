@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI, createUserContent, createPartFromUri } from '@google/genai';
 
 interface Message {
   text: string;
@@ -6,12 +6,13 @@ interface Message {
 }
 
 export const getAIResponse = async (
-  message: string,
+  message: string | undefined,
   messages: Message[],
   selectedModel: string,
   apiKey: string,
   onSendMessage: (message: string, isUser: boolean) => void,
-  onStreamEnd?: () => void
+  onStreamEnd?: () => void,
+  imageFile?: File
 ) => {
   if (!apiKey) {
     onSendMessage('API 키가 설정되지 않았습니다. 프로필 페이지에서 API 키를 설정해주세요.', false);
@@ -20,41 +21,55 @@ export const getAIResponse = async (
   }
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: selectedModel });
-    
-    // 대화 히스토리 생성
-    const chatHistory = messages.map(msg => ({
-      role: msg.isUser ? 'user' : 'model',
-      parts: [{ text: msg.text }]
-    }));
-    
-    // 현재 메시지 추가
-    chatHistory.push({
-      role: 'user',
-      parts: [{ text: message }]
-    });
+    const ai = new GoogleGenAI({ apiKey });
 
-    // 채팅 시작
-    const chat = model.startChat({
-      history: chatHistory
-    });
-    
-    const result = await chat.sendMessageStream(message);
-    let fullResponse = '';
-    
-    for await (const chunk of result.stream) {
-      const chunkText = chunk.text();
-      fullResponse += chunkText;
-      onSendMessage(fullResponse, false);
+    if (imageFile) {
+      // 이미지 업로드
+      const uploaded = await ai.files.upload({ file: imageFile });
+
+      const response = await ai.models.generateContentStream({
+        model: selectedModel,
+        contents: [
+          createUserContent([
+            createPartFromUri(uploaded.uri, uploaded.mimeType),
+            message ?? '',
+          ]),
+        ],
+      });
+
+      let fullResponse = '';
+      for await (const chunk of response) {
+        fullResponse += chunk.text;
+        onSendMessage(fullResponse, false);
+      }
+      onStreamEnd?.();
+
     }
-    onStreamEnd?.();
+    else{
+      const chat = ai.chats.create({
+        model: selectedModel,
+        history: messages.map(msg => ({
+          role: msg.isUser ? 'user' : 'model',
+          parts: [{ text: msg.text }]
+        })),
+      });
+
+      let fullResponse = '';
+      const stream = await chat.sendMessageStream({
+        message: message ?? '',
+      });
+      for await (const chunk of stream) {
+        fullResponse += chunk.text;
+        onSendMessage(fullResponse, false);
+      }
+      onStreamEnd?.();
+    }
   } catch (error) {
     console.error('Error:', error);
     if (error instanceof Error && error.message.includes('API key')) {
       onSendMessage('API 키가 올바르지 않습니다. 프로필 페이지에서 올바른 API 키를 설정해주세요.', false);
     } else {
-      onSendMessage('죄송합니다. 오류가 발생했습니다.', false);
+      onSendMessage(`죄송합니다. 오류가 발생했습니다.\n${error}`, false);
     }
     onStreamEnd?.();
   }

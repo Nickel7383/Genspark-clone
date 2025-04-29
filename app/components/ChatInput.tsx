@@ -5,7 +5,7 @@ import { getAIResponse } from '@/app/lib/aiResponse';
 
 interface ChatInputProps {
   initialMessage?: string;
-  onSendMessage: (message: string, isUser: boolean) => void;
+  onSendMessage: (message: string, isUser: boolean, imagePreview?: string | null) => void;
   messages: { text: string; isUser: boolean }[];
   onStreamEnd?: () => void;
   selectedModel: string;
@@ -13,9 +13,13 @@ interface ChatInputProps {
 }
 
 const AVAILABLE_MODELS = [
-  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' },
   { id: 'gemini-2.5-pro-exp-03-25', name: 'Gemini 2.5 Pro exp' },
-  { id: 'gemini-2.5-flash-preview-04-17', name: 'Gemini 2.5 Flash' }
+  { id: 'gemini-2.5-flash-preview-04-17', name: 'Gemini 2.5 Flash' },
+  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' },
+  { id: 'gemini-2.0-flash-lite', name: 'Gemini 2.0 Flash-Lite' },
+  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
+  { id: 'gemini-1.5-flash-8b', name: 'Gemini 1.5 Flash-8B' },
+  { id: 'gemma-3-27b-it', name: 'Gemma 3 27B IT' },
 ];
 
 export default function ChatInput({ 
@@ -32,6 +36,10 @@ export default function ChatInput({
   const formRef = useRef<HTMLFormElement>(null);
   const [apiKey, setApiKey] = useState<string>('');
   const [hasInitialMessageSent, setHasInitialMessageSent] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // API 키 가져오기
   useEffect(() => {
@@ -60,7 +68,7 @@ export default function ChatInput({
       setTimeout(() => {
         if (!isLoading) {
           setIsLoading(true);
-          onSendMessage(initialMessage, true);
+          onSendMessage(initialMessage, true, imagePreview);
           
           getAIResponse(
             initialMessage,
@@ -71,7 +79,8 @@ export default function ChatInput({
             () => {
               setIsLoading(false);
               onStreamEnd?.();
-            }
+            },
+            imageFile || undefined // null이 아닌 경우만 전달
           );
           setIsLoading(false);
         }
@@ -87,16 +96,63 @@ export default function ChatInput({
     }
   }, [message]);
 
+  // 이미지 업로드 함수
+  const uploadImageAndGetUrl = async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch('/api/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    return data.url as string;
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+      const url = await uploadImageAndGetUrl(file);
+      setUploadedImageUrl(url);
+    }
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.indexOf('image') !== -1) {
+        const file = item.getAsFile();
+        if (file) {
+          setImageFile(file);
+          setImagePreview(URL.createObjectURL(file));
+          const url = await uploadImageAndGetUrl(file);
+          setUploadedImageUrl(url);
+        }
+        e.preventDefault();
+        break;
+      }
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setUploadedImageUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim() || isLoading) return;
+    if ((!message.trim() && !imageFile) || isLoading) return;
 
     setIsLoading(true);
-    onSendMessage(message, true);
+    onSendMessage(message, true, uploadedImageUrl); // 서버에 저장된 URL 전달
     setMessage('');
+    setImageFile(null);
+    setImagePreview(null);
+    setUploadedImageUrl(null);
 
     await getAIResponse(
-      message,
+      message || '',
       messages,
       selectedModel,
       apiKey,
@@ -104,28 +160,40 @@ export default function ChatInput({
       () => {
         setIsLoading(false);
         onStreamEnd?.();
-      }
+      },
+      imageFile || undefined // null이 아닌 경우만 전달
     );
   };
 
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="w-full mx-auto relative">
-      <textarea
-        ref={textareaRef}
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            if (!isLoading) {
-            handleSubmit(e);
+      <div className="relative w-full">
+        {/* 이미지 미리보기 (텍스트박스 내부 왼쪽 상단) */}
+        {imagePreview && (
+          <div className="absolute left-3 top-3 z-10 flex items-center" style={{ marginBottom: 16 }}>
+            <img src={imagePreview} alt="preview" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }} />
+            <button type="button" onClick={handleRemoveImage} className="ml-1 text-white bg-black/60 rounded-full w-6 h-6 flex items-center justify-center hover:bg-black/80">×</button>
+          </div>
+        )}
+        <textarea
+          ref={textareaRef}
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          onPaste={handlePaste}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              if (!isLoading) {
+                handleSubmit(e);
+              }
             }
-          }
-        }}
-        placeholder="무엇이든 물어보세요"
-        className="w-full p-3 pr-24 bg-[#333333] text-gray-200 border border-gray-600 rounded-xl focus:outline-none min-h-[100px] resize-none"
-        rows={4}
-      />
+          }}
+          placeholder="무엇이든 물어보세요"
+          className="w-full p-3 pr-24 bg-[#333333] text-gray-200 border border-gray-600 rounded-xl focus:outline-none min-h-[100px] resize-none"
+          rows={4}
+          style={imagePreview ? { paddingTop: 72 } : {}}
+        />
+      </div>
       <div className="absolute right-3 bottom-4 flex items-center gap-2">
         <select
           value={selectedModel}
@@ -138,6 +206,23 @@ export default function ChatInput({
             </option>
           ))}
         </select>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="w-8 h-8 flex items-center justify-center text-white rounded-full bg-gray-500 hover:bg-gray-600"
+            title="이미지 업로드"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 002.828 2.828L18 9.828M7 7h.01M21 21H3a2 2 0 01-2-2V5a2 2 0 012-2h18a2 2 0 012 2v14a2 2 0 01-2 2z" />
+            </svg>
+          </button>
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            onChange={handleImageChange}
+            style={{ display: 'none' }}
+          />
         <button
           type="submit"
           disabled={isLoading}

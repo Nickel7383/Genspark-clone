@@ -4,9 +4,10 @@ import { useEffect, useState, useRef } from 'react';
 interface ChatMessageProps {
   message: string;
   isUser: boolean;
+  imageUrl?: string;
 }
 
-export default function ChatMessage({ message, isUser }: ChatMessageProps) {
+export default function ChatMessage({ message, isUser, imageUrl }: ChatMessageProps) {
   const [isVisible, setIsVisible] = useState(false);
   const prevMessageRef = useRef(message);
 
@@ -25,6 +26,15 @@ export default function ChatMessage({ message, isUser }: ChatMessageProps) {
   return (
     <div className="flex justify-center mb-10">
       <div className="w-full">
+        {imageUrl && (
+          <div className={`flex mb-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
+            <img 
+              src={imageUrl} 
+              alt="user upload" 
+              style={{ maxWidth: '100%', maxHeight: 320, width: 'auto', height: 'auto', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
+            />
+          </div>
+        )}
         <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
           <div 
             className={`${

@@ -8,6 +8,7 @@ import { useSession } from 'next-auth/react';
 interface Message {
   text: string;
   isUser: boolean;
+  imageUrl?: string;
 }
 
 interface ChatInterfaceProps {
@@ -115,9 +116,9 @@ export default function ChatInterface({ initialMessage, selectedChatId }: ChatIn
     }
   };
 
-  const handleNewMessage = useCallback((message: string, isUser: boolean) => {
+  const handleNewMessage = useCallback((message: string, isUser: boolean, imageUrl?: string) => {
     if (isUser) {
-      updateMessages(prev => [...prev, { text: message, isUser }]);
+      updateMessages(prev => [...prev, { text: message, isUser, imageUrl }]);
       setIsStreaming(true);
     } else {
       updateMessages(prev => {
@@ -183,6 +184,7 @@ export default function ChatInterface({ initialMessage, selectedChatId }: ChatIn
                             key={index}
                             message={message.text}
                             isUser={message.isUser}
+                            imageUrl={message.imageUrl}
                             />
                         ))}
                         <div ref={messagesEndRef} />
