@@ -133,7 +133,7 @@ export default function ChatInterface({ initialMessage, selectedChatId }: ChatIn
         const newMessages = [...prev];
         const lastMessage = newMessages[newMessages.length - 1];
         if (lastMessage && !lastMessage.isUser) {
-          newMessages[newMessages.length - 1] = { text: message, isUser };
+          newMessages[newMessages.length - 1] = { text: message, isUser, imageUrl: lastMessage.imageUrl };
         } else {
           newMessages.push({ text: message, isUser });
         }
