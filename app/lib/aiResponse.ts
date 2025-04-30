@@ -44,6 +44,7 @@ export const getAIResponse = async (
       let fullResponse = '';
       for await (const chunk of response) {
         fullResponse += chunk.text;
+        console.log('스트리밍 응답:', chunk.text);
         onSendMessage(fullResponse, false);
       }
       onStreamEnd?.();

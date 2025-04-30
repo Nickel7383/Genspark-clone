@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import ChatInput from './ChatInput';
 import ChatMessage from './ChatMessage';
 import { useSession } from 'next-auth/react';
+import LoadingSpinner from "./LoadingSpinner";
 
 interface Message {
   text: string;
@@ -20,19 +21,24 @@ export default function ChatInterface({ initialMessage, selectedChatId }: ChatIn
   const { data: session } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [lastScrollTop, setLastScrollTop] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [selectedModel, setSelectedModel] = useState('gemini-2.0-flash');
   const [chatId, setChatId] = useState<string | null>(selectedChatId || null);
   const [isSaving, setIsSaving] = useState(false);
   const messagesRef = useRef<Message[]>([]);
+  const [isAutoScroll, setIsAutoScroll] = useState(true);
 
   // 선택된 채팅의 메시지 불러오기
   useEffect(() => {
     async function fetchChatMessages() {
-      if (!selectedChatId) return;
+      if (!selectedChatId) {
+        setIsLoading(false);
+        return;
+      }
       
       try {
+        setIsLoading(true);
         const response = await fetch(`/api/chat?id=${selectedChatId}`);
         if (!response.ok) {
           throw new Error('채팅 메시지를 불러오는데 실패했습니다.');
@@ -44,6 +50,8 @@ export default function ChatInterface({ initialMessage, selectedChatId }: ChatIn
       } catch (error) {
         console.error('채팅 메시지 조회 중 오류:', error);
         setMessages([]);
+      } finally {
+        setIsLoading(false);
       }
     }
     
@@ -143,67 +151,73 @@ export default function ChatInterface({ initialMessage, selectedChatId }: ChatIn
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
     const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
-    
-    if (scrollTop < lastScrollTop) {
-      setIsStreaming(false);
-    } else if (isNearBottom) {
-      setIsStreaming(true);
-    }
-    
-    setLastScrollTop(scrollTop);
-  }, [lastScrollTop]);
+  
+    // 자동 스크롤 여부 설정
+    setIsAutoScroll(isNearBottom);
+  }, []);
 
   useEffect(() => {
-    if (isStreaming) {
-      const container = messagesEndRef.current?.parentElement?.parentElement;
-      if (container) {
-        const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-        if (isNearBottom) {
-          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-        }
-      }
+    if (isStreaming && isAutoScroll) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, isStreaming]);
+  }, [messages, isStreaming, isAutoScroll]);
 
+  useEffect(() => {
+    if (!isLoading && messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+    }
+  }, [isLoading, messages]);
 
   return (
     <div 
       className="flex-1 flex flex-col h-full overflow-hidden overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-[#1a1a1a] [&::-webkit-scrollbar-thumb]:bg-[#333] [&::-webkit-scrollbar-thumb]:rounded-full bg-[#232425]"
       onScroll={handleScroll}
     >
-        <div className='max-w-[850px] w-full mx-auto flex-1 flex flex-col h-full'>
-            <div className="flex-1 px-8">
-                {messages.length === 0 ? (
-                    <div className="h-full flex items-center justify-center">
-                        <h2 className="text-3xl font-bold text-white">안녕하세요, 무엇을 도와드릴까요?</h2>
-                    </div>
-                ) : (
-                    <div className="space-y-4 pt-8">
-                        {messages.map((message, index) => (
-                            <ChatMessage
-                            key={index}
-                            message={message.text}
-                            isUser={message.isUser}
-                            imageUrl={message.imageUrl}
-                            />
-                        ))}
-                        <div ref={messagesEndRef} />
-                    </div>
+      <div className='max-w-[850px] w-full mx-auto flex-1 flex flex-col h-full'>
+        <div className="flex-1 px-8">
+          {isLoading ? (
+            <div className="h-full flex items-center justify-center">
+              <LoadingSpinner />
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="h-full flex items-center justify-center">
+              <h2 className="text-3xl font-bold text-white">안녕하세요, 무엇을 도와드릴까요?</h2>
+            </div>
+          ) : (
+            <Suspense fallback={<LoadingSpinner />}>
+              <div className="space-y-4 pt-8">
+                {messages.map((message, index) => (
+                  <ChatMessage
+                    key={index}
+                    message={message.text}
+                    isUser={message.isUser}
+                    imageUrl={message.imageUrl}
+                  />
+                ))}
+                {isStreaming && (
+                  <div className="flex items-center space-x-2 text-gray-400">
+                    <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                    <span>생성 중...</span>
+                  </div>
                 )}
-            </div>
-            <div className="sticky bottom-0 px-8 bg-gradient-to-b from-transparent via-[#232425] via-20% to-[#232425]">
-                <div className="py-4">
-                <ChatInput 
-                    initialMessage={initialMessage}
-                    onSendMessage={handleNewMessage} 
-                    messages={messages} 
-                    onStreamEnd={handleStreamEnd}
-                    selectedModel={selectedModel}
-                    onModelChange={handleModelChange}
-                />
-                </div>
-            </div>
+                <div ref={messagesEndRef} />
+              </div>
+            </Suspense>
+          )}
         </div>
+        <div className="sticky bottom-0 px-8 bg-gradient-to-b from-transparent via-[#232425] via-20% to-[#232425]">
+          <div className="py-4">
+            <ChatInput 
+              initialMessage={initialMessage}
+              onSendMessage={handleNewMessage} 
+              messages={messages} 
+              onStreamEnd={handleStreamEnd}
+              selectedModel={selectedModel}
+              onModelChange={handleModelChange}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 } 
