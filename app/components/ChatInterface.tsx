@@ -133,9 +133,9 @@ export default function ChatInterface({ initialMessage, selectedChatId }: ChatIn
         const newMessages = [...prev];
         const lastMessage = newMessages[newMessages.length - 1];
         if (lastMessage && !lastMessage.isUser) {
-          newMessages[newMessages.length - 1] = { text: message, isUser, imageUrl: lastMessage.imageUrl };
+          newMessages[newMessages.length - 1] = { text: message, isUser, imageUrl: imageUrl || lastMessage.imageUrl };
         } else {
-          newMessages.push({ text: message, isUser });
+          newMessages.push({ text: message, isUser, imageUrl: imageUrl || undefined });
         }
         return newMessages;
       });

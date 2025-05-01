@@ -23,6 +23,7 @@ export default function ChatMessage({ message, isUser, imageUrl }: ChatMessagePr
     }
   }, [message, isVisible]);
 
+
   return (
     <div className="flex justify-center mb-10">
       <div className="w-full">
@@ -30,32 +31,34 @@ export default function ChatMessage({ message, isUser, imageUrl }: ChatMessagePr
           <div className={`flex mb-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
             <img 
               src={imageUrl} 
-              alt="user upload" 
+              alt="uploaded image" 
               style={{ maxWidth: '100%', maxHeight: 320, width: 'auto', height: 'auto', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
             />
           </div>
         )}
-        <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-          <div 
-            className={`${
-              isUser 
-                ? 'max-w-[70%] bg-white text-black p-2.5 rounded-2xl' 
-                : 'text-gray-200'
-            } transition-opacity duration-300 ${
-              isVisible ? 'opacity-100' : 'opacity-0'
-            }`}
-          >
-            {isUser ? (
-              <p className="text-base whitespace-pre-wrap">{message}</p>
-            ) : (
-              <div className="text-base whitespace-pre-wrap">
-                <ReactMarkdown>
-                  {message}
-                </ReactMarkdown>
-              </div>
-            )}
+        {(!isUser || message.trim()) && (
+          <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+            <div 
+              className={`${
+                isUser 
+                  ? 'max-w-[70%] bg-white text-black p-2.5 rounded-2xl' 
+                  : 'text-gray-200'
+              } transition-opacity duration-300 ${
+                isVisible ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              {isUser ? (
+                <p className="text-base whitespace-pre-wrap">{message}</p>
+              ) : (
+                <div className="text-base whitespace-pre-wrap">
+                  <ReactMarkdown>
+                    {message}
+                  </ReactMarkdown>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

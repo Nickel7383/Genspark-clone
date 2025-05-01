@@ -15,6 +15,7 @@ interface ChatInputProps {
 const AVAILABLE_MODELS = [
   { id: 'gemini-2.5-pro-exp-03-25', name: 'Gemini 2.5 Pro exp' },
   { id: 'gemini-2.5-flash-preview-04-17', name: 'Gemini 2.5 Flash' },
+  { id: 'gemini-2.0-flash-exp-image-generation', name: 'Gemini 2.0 Flash-Exp Image Generation' },
   { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' },
   { id: 'gemini-2.0-flash-lite', name: 'Gemini 2.0 Flash-Lite' },
   { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
@@ -98,11 +99,22 @@ export default function ChatInput({
 
   // 이미지 업로드 함수
   const uploadImageAndGetUrl = async (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    const res = await fetch('/api/upload', { method: 'POST', body: formData });
-    const data = await res.json();
-    return data.url as string;
+    const toBase64 = (file: File): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file); // "data:image/png;base64,..." 형식 반환
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = error => reject(error);
+      });
+    };
+  
+    const base64Url = await toBase64(file);
+    return base64Url;
+    // const formData = new FormData();
+    // formData.append('file', file);
+    // const res = await fetch('/api/upload', { method: 'POST', body: formData });
+    // const data = await res.json();
+    // return data.url as string;
   };
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

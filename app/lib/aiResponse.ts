@@ -1,4 +1,4 @@
-import { GoogleGenAI, createUserContent, createPartFromUri } from '@google/genai';
+import { GoogleGenAI, createUserContent, createPartFromUri, Modality } from '@google/genai';
 
 interface Message {
   text: string;
@@ -10,7 +10,7 @@ export const getAIResponse = async (
   messages: Message[],
   selectedModel: string,
   apiKey: string,
-  onSendMessage: (message: string, isUser: boolean) => void,
+  onSendMessage: (message: string, isUser: boolean, imageUrl?: string) => void,
   onStreamEnd?: () => void,
   imageFile?: File
 ) => {
@@ -21,6 +21,12 @@ export const getAIResponse = async (
   }
 
   try {
+    const contents = messages.map(msg => ({
+      role: msg.isUser ? 'user' : 'model',
+      parts: [{ text: msg.text }]
+    }));
+
+
     const ai = new GoogleGenAI({ apiKey });
 
     if (imageFile) {
@@ -44,30 +50,64 @@ export const getAIResponse = async (
       let fullResponse = '';
       for await (const chunk of response) {
         fullResponse += chunk.text;
-        console.log('스트리밍 응답:', chunk.text);
         onSendMessage(fullResponse, false);
       }
       onStreamEnd?.();
 
     }
     else{
-      const chat = ai.chats.create({
-        model: selectedModel,
-        history: messages.map(msg => ({
-          role: msg.isUser ? 'user' : 'model',
-          parts: [{ text: msg.text }]
-        })),
+      
+      contents.push({
+        role: 'user',
+        parts: [{ text: message ?? '' }]
       });
+      if (selectedModel === 'gemini-2.0-flash-exp-image-generation') {
+        const response = await ai.models.generateContent({
+          model: selectedModel,
+          contents: contents,
+          config: {responseModalities: [Modality.TEXT, Modality.IMAGE]},
+        });
 
-      let fullResponse = '';
-      const stream = await chat.sendMessageStream({
-        message: message ?? '',
-      });
-      for await (const chunk of stream) {
-        fullResponse += chunk.text;
-        onSendMessage(fullResponse, false);
+        for (const part of response.candidates?.[0]?.content?.parts ?? []) {
+          if (part.text) {
+            onSendMessage(part.text, false);
+          } else if (part.inlineData) {
+            const imageData = part.inlineData.data;
+            if (imageData) {
+              const mimeType = part.inlineData.mimeType
+              const dataUrl = `data:${mimeType};base64,${imageData}`;
+              onSendMessage("", false, dataUrl);
+              
+              // const res = await fetch('/api/save-image', {
+              //   method: 'POST',
+              //   headers: { 'Content-Type': 'application/json' },
+              //   body: JSON.stringify({ imageData }),
+              // });
+              // const data = await res.json();
+              // onSendMessage("", false, data.url as string);
+            }
+          }
+        }
+        onStreamEnd?.();
       }
-      onStreamEnd?.();
+      else{
+        const response = await ai.models.generateContentStream({
+          model: selectedModel,
+          contents: contents,
+        }); 
+
+        
+        let fullResponse = '';
+        for await (const chunk of response) {
+          if (chunk.text === undefined) {
+            onStreamEnd?.();
+            return;
+          }
+          fullResponse += chunk.text;
+          onSendMessage(fullResponse, false);
+        }
+        onStreamEnd?.();
+      }
     }
   } catch (error) {
     console.error('Error:', error);

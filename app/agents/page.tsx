@@ -22,7 +22,6 @@ export default function AgentsPage() {
   useEffect(() => {
     const savedMessage = sessionStorage.getItem('tempMessage');
     if (savedMessage) {
-      console.log('sessionStorage에서 메시지 가져옴:', savedMessage);
       setInitialMessage(savedMessage);
       sessionStorage.removeItem('tempMessage');
     }

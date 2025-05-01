@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import LoadingSpinner from './LoadingSpinner';
 
 interface Chat {
   id: string;
@@ -47,10 +48,12 @@ export default function ChatSidebar({
     setIsInitialized(false);
   }, [isInitialized]);
 
-  const handleDeleteChat = (e: React.MouseEvent, chatId: string) => {
+  const handleDeleteChat = async (e: React.MouseEvent, chatId: string) => {
     e.stopPropagation();
     if (onDeleteChat && window.confirm('이 대화를 삭제하시겠습니까?')) {
-      onDeleteChat(chatId);
+      setIsLoading(true);
+      await onDeleteChat(chatId);
+      setIsLoading(false);
     }
     setIsInitialized(true);
   };
@@ -102,8 +105,10 @@ export default function ChatSidebar({
         </div>
         <button
           className="m-4 p-2 bg-[#333] text-white rounded hover:bg-[#444] transition"
-          onClick={() => {
-            onNewChat();
+          onClick={async () => {
+            setIsLoading(true);
+            await onNewChat();
+            setIsLoading(false);
             setIsInitialized(true);
           }}
         >
@@ -111,7 +116,9 @@ export default function ChatSidebar({
         </button>
         <div className="flex-1 overflow-y-auto">
           {isLoading ? (
-            <div className="p-4 text-center text-gray-400">로딩 중...</div>
+            <div className="p-4 text-center text-gray-400">
+              로딩 중...
+            </div>
           ) : chats.length === 0 ? (
             <div className="p-4 text-center text-gray-400">대화 목록이 없습니다.</div>
           ) : (

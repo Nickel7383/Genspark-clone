@@ -52,6 +52,18 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: '사용자를 찾을 수 없습니다.' }, { status: 404 });
     }
 
+    // 채팅이 존재하는지 먼저 확인
+    const existingChat = await prisma.chat.findUnique({
+      where: {
+        id: chatId,
+        userId: user.id,
+      },
+    });
+
+    if (!existingChat) {
+      return NextResponse.json({ error: '채팅을 찾을 수 없습니다.' }, { status: 404 });
+    }
+
     const chat = await prisma.chat.update({
       where: {
         id: chatId,
