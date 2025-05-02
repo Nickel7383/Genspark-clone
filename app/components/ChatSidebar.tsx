@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import LoadingSpinner from './LoadingSpinner';
 
 interface Chat {
   id: string;
@@ -24,7 +23,6 @@ export default function ChatSidebar({
   const [open, setOpen] = useState(false);
   const [chats, setChats] = useState<Chat[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isInitialized, setIsInitialized] = useState(false);
 
   // 대화 목록 불러오기
   useEffect(() => {
@@ -45,17 +43,15 @@ export default function ChatSidebar({
     }
 
     fetchChats();
-    setIsInitialized(false);
-  }, [isInitialized]);
+  }, [isLoading, open]);
 
   const handleDeleteChat = async (e: React.MouseEvent, chatId: string) => {
     e.stopPropagation();
     if (onDeleteChat && window.confirm('이 대화를 삭제하시겠습니까?')) {
       setIsLoading(true);
       await onDeleteChat(chatId);
-      setIsLoading(false);
+      //setIsLoading(false);
     }
-    setIsInitialized(true);
   };
 
   return (
@@ -66,7 +62,6 @@ export default function ChatSidebar({
           className="absolute top-4 left-4 z-30 bg-[#232425] p-2 rounded-full shadow hover:bg-[#333] transition"
           onClick={() => {
             setOpen(true);
-            setIsInitialized(true);
           }}
           aria-label="작업 목록 열기"
           style={{ transition: 'left 0.3s' }}
@@ -105,11 +100,9 @@ export default function ChatSidebar({
         </div>
         <button
           className="m-4 p-2 bg-[#333] text-white rounded hover:bg-[#444] transition"
-          onClick={async () => {
+          onClick={() => {
             setIsLoading(true);
-            await onNewChat();
-            setIsLoading(false);
-            setIsInitialized(true);
+            onNewChat();
           }}
         >
           + 새 대화

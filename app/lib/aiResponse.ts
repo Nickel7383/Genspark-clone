@@ -77,31 +77,26 @@ export const getAIResponse = async (
               const mimeType = part.inlineData.mimeType
               const dataUrl = `data:${mimeType};base64,${imageData}`;
               onSendMessage("", false, dataUrl);
-              
-              // const res = await fetch('/api/save-image', {
-              //   method: 'POST',
-              //   headers: { 'Content-Type': 'application/json' },
-              //   body: JSON.stringify({ imageData }),
-              // });
-              // const data = await res.json();
-              // onSendMessage("", false, data.url as string);
             }
           }
         }
         onStreamEnd?.();
       }
+
       else{
         const response = await ai.models.generateContentStream({
           model: selectedModel,
           contents: contents,
+          config: {
+            tools: [{googleSearch: {}}],
+          },
         }); 
 
         
         let fullResponse = '';
         for await (const chunk of response) {
           if (chunk.text === undefined) {
-            onStreamEnd?.();
-            return;
+            continue;
           }
           fullResponse += chunk.text;
           onSendMessage(fullResponse, false);

@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import ChatSidebar from '../components/ChatSidebar';
 import ChatInterface from '../components/ChatInterface';
-import LoadingSpinner from '../components/LoadingSpinner';
 import Sidebar from '../components/Sidebar';
 
 interface Chat {
@@ -103,6 +102,7 @@ export default function AgentsPage() {
         onDeleteChat={handleDeleteChat}
       />
       <ChatInterface 
+        key={selectedChatId}
         initialMessage={initialMessage} 
         selectedChatId={selectedChatId}
       />

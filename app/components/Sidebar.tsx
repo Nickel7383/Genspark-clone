@@ -35,8 +35,8 @@ export default function Sidebar() {
   const menuItems = [
     { path: '/', label: '홈', icon: '🏠' },
     { path: '/agents', label: '슈퍼 에이전트', icon: '💬' },
-    { path: '/test2', label: 'AI 슬라이드', icon: '🔧' },
     { path: '/test3', label: '이미지 스튜디오', icon: '📞' },
+    { path: '/test2', label: '딥 리서치', icon: '🔧' },
   ];
 
   const profileMenu = [
